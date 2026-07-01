@@ -1,0 +1,98 @@
+####################################
+# Visual Studio / Rider / VS Code
+####################################
+.vs/
+.vscode/
+.idea/
+
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.sln.iml
+
+####################################
+# Build results
+####################################
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+####################################
+# ASP.NET / .NET
+####################################
+project.lock.json
+project.fragment.lock.json
+ScaffoldingReadMe.txt
+
+####################################
+# NuGet
+####################################
+*.nupkg
+*.snupkg
+packages/
+*.nuspec
+*.psmdcp
+*.symbols.nupkg
+
+####################################
+# Visual Studio profiler
+####################################
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+####################################
+# ReSharper / DotCover
+####################################
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.dotCover
+
+####################################
+# IIS Express
+####################################
+.vs/config/applicationhost.config
+*.vspscc
+*.vssscc
+
+####################################
+# OS files
+####################################
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+####################################
+# Logs
+####################################
+*.log
+
+####################################
+# AppSettings
+####################################
+# ✅ Commit appsettings.json
+# ❌ Ignore environment-specific settings
+**/appsettings.*.json
+!**/appsettings.json
+
+####################################
+# Firebase Credentials
+####################################
+# ❌ NEVER commit Firebase credentials with private keys
+*firebase-adminsdk*.json
+gsp26se10-27295-firebase-adminsdk-fbsvc-c019727245.json
+
+####################################
+# Docker (optional)
+####################################
+docker-compose.override.yml
+.env
+.env.*
