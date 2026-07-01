@@ -110,5 +110,34 @@ namespace Services.Implement
 
             return idProp.GetString() ?? throw new Exception("Facebook carousel post id is empty");
         }
+        public async Task<string> PublishVideoPostAsync(string caption, string videoUrl, string pageId, string pageToken)
+        {
+            if (string.IsNullOrWhiteSpace(videoUrl))
+                throw new ArgumentException("Video URL is required", nameof(videoUrl));
+
+            var url = $"{GraphBaseUrl}/{pageId}/videos";
+
+            using var formData = new FormUrlEncodedContent(new[]
+            {
+        new KeyValuePair<string, string>("file_url", videoUrl),
+        new KeyValuePair<string, string>("description", caption),
+        new KeyValuePair<string, string>("access_token", pageToken)
+    });
+
+            var response = await _httpClient.PostAsync(url, formData);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Facebook video publish error: {body}");
+                throw new Exception($"Facebook publish video failed: {body}");
+            }
+
+            using var doc = JsonDocument.Parse(body);
+            if (!doc.RootElement.TryGetProperty("id", out var idProp))
+                throw new Exception($"Facebook video response missing id. Body: {body}");
+
+            return idProp.GetString() ?? throw new Exception("Facebook video post id is empty");
+        }
     }
 }

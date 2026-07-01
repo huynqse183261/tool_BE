@@ -2,6 +2,7 @@
 using Repositories;
 using Services.Interface;
 using Services.Models.Enums;
+using Services.Models.Request;
 
 namespace Services.Implement
 {
@@ -14,20 +15,18 @@ namespace Services.Implement
         private readonly ScheduledJobRepository _scheduledJobRepository;
         private readonly IPublishService _publishService;
 
-        private readonly INotificationService _notificationService;
 
         public PublishingJob(
             PostRepository postRepository,
             PostPlatformRepository postPlatformRepository,
             ScheduledJobRepository scheduledJobRepository,
-            IPublishService publishService,
-            INotificationService notificationService)
+            IPublishService publishService
+)
         {
             _postRepository = postRepository;
             _postPlatformRepository = postPlatformRepository;
             _scheduledJobRepository = scheduledJobRepository;
             _publishService = publishService;
-            _notificationService = notificationService;
         }
 
         public async Task ExecuteAsync(int postId)
@@ -50,39 +49,40 @@ namespace Services.Implement
                 // Loop qua từng platform cần publish
                 var platforms = await _postPlatformRepository.GetByPostIdAsync(postId);
                 var hasError = false;
-
                 foreach (var platform in platforms.Where(p => p.Status == "Pending"))
                 {
                     try
                     {
                         if (platform.Platform == "Facebook")
                         {
-                            // Gọi PublishService — reuse logic đã có
+                            // Log caption để verify không null trước khi publish
+                            Console.WriteLine($"[PublishingJob] Post {postId} caption: '{post.Caption}'");
+
                             var result = await _publishService.PublishToFacebookAsync(
-                                postId, post.UserId, null);
+                                postId, post.UserId, new PublishPostRequest
+                                {
+                                    Caption = post.Caption
+                                });
 
                             if (!result.Success)
                             {
+                                Console.WriteLine($"[PublishingJob] Failed post {postId}: {result.Message}");
                                 platform.Status = "Failed";
                                 platform.ErrorMessage = result.Message;
                                 hasError = true;
-
-                                // Notify thất bại
-                                await _notificationService.NotifyPublishFailedAsync(
-                                    post.UserId, postId, platform.Platform, result.Message);
                             }
                             else
                             {
-                                // Notify thành công
-                                await _notificationService.NotifyPublishSuccessAsync(
-                                    post.UserId, postId, platform.Platform);
+                                // Success — không set hasError
+                                platform.Status = "Published";
+                                platform.PlatformPostId = result.Data?.FacebookPostId;
+                                platform.PublishedAt = DateTime.UtcNow;
                             }
                         }
-                        // Instagram sẽ thêm sau khi có token
                     }
                     catch (Exception platformEx)
                     {
-                        // Catch lỗi từng platform riêng — không để 1 platform fail làm dừng cả job
+                        Console.WriteLine($"[PublishingJob] Exception on platform {platform.Platform}: {platformEx.Message}");
                         platform.Status = "Failed";
                         platform.ErrorMessage = platformEx.Message;
                         hasError = true;

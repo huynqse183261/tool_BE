@@ -68,7 +68,6 @@ builder.Services.AddScoped<IAiGenerationService, AiGenerationService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IPublishService, PublishService>();
 builder.Services.AddScoped<IPublishingJob, PublishingJob>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
 
 //http client for OpenAI API
 builder.Services.AddHttpClient<IAiService, OpenAIService>();
@@ -96,7 +95,14 @@ builder.Services.AddHangfire(config => config
             builder.Configuration.GetConnectionString("DefaultConnection")
         )));
 
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer(options =>
+{
+    // Limit concurrent workers — prevents memory spike on large queues
+    options.WorkerCount = 5;
+
+    // Poll DB every 15s instead of default 15s — fine for scheduling use case
+    options.SchedulePollingInterval = TimeSpan.FromSeconds(15);
+});
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -125,7 +131,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173") // port mặc định Vite
+            .WithOrigins("http://localhost:5173", "https://tool-fe-theta.vercel.app") // port mặc định Vite
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

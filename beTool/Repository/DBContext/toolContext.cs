@@ -189,6 +189,13 @@ public partial class toolContext : DbContext
                 .HasColumnType("timestamp with time zone")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.PostType)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'Image'::character varying")
+                .HasColumnName("post_type");
+
+            entity.Property(e => e.VideoUrl)
+                .HasColumnName("video_url");
 
             entity.HasOne(d => d.User).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.UserId)

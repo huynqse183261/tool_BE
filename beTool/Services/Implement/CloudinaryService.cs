@@ -105,5 +105,24 @@ namespace Services.Implement
 
             return uploadedUrls;
         }
+        public async Task<string> UploadVideoAsync(IFormFile videoFile)
+        {
+            // Upload video to Cloudinary with resource_type = video
+            using var stream = videoFile.OpenReadStream();
+            var uploadParams = new VideoUploadParams
+            {
+                File = new FileDescription(videoFile.FileName, stream),
+                Folder = "beTool/videos",
+                UseFilename = true,
+                UniqueFilename = true
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+            if (uploadResult.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new Exception($"Cloudinary video upload failed: {uploadResult.Error?.Message}");
+
+            return uploadResult.SecureUrl.ToString();
+        }
     }
 }

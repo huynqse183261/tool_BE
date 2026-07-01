@@ -534,6 +534,7 @@ Return valid JSON only. No markdown. No extra keys beyond what the user prompt r
 
         private static object[] BuildImageContentParts(List<string> imageUrls)
         {
+            var limitedUrls = imageUrls.Take(4).ToList();
             var parts = new List<object>();
             foreach (var url in imageUrls)
             {
@@ -572,46 +573,6 @@ Return valid JSON only. No markdown. No extra keys beyond what the user prompt r
         {
             if (string.IsNullOrWhiteSpace(text)) return "{}";
             return text.Replace("```json", "").Replace("```", "").Trim();
-        }
-
-        private static (string caption, string analysis, string contentType, string tone, string? title, List<string>? hashtags)
-            ParseGenerationResponse(string response, string contentType)
-        {
-            var text = CleanupText(ExtractAssistantContent(response));
-
-            try
-            {
-                using var doc = JsonDocument.Parse(text);
-                var root = doc.RootElement;
-
-                var analysis = root.TryGetProperty("analysis", out var a) ? (a.GetString() ?? "") : "";
-                var title = root.TryGetProperty("title", out var t) ? t.GetString() : null;
-                var caption = root.TryGetProperty("caption", out var c) ? (c.GetString() ?? "") : "";
-                var tone = root.TryGetProperty("tone", out var to) ? (to.GetString() ?? "general") : "general";
-
-                // sanitize forbidden words before returning
-                caption = SanitizeForbiddenVocabulary(caption);
-                analysis = SanitizeForbiddenVocabulary(analysis);
-                title = title == null ? null : SanitizeForbiddenVocabulary(title);
-
-                List<string>? hashtags = null;
-                if (root.TryGetProperty("hashtags", out var h) && h.ValueKind == JsonValueKind.Array)
-                {
-                    hashtags = new List<string>();
-                    foreach (var item in h.EnumerateArray())
-                    {
-                        var v = item.GetString();
-                        if (!string.IsNullOrWhiteSpace(v)) hashtags.Add(v);
-                    }
-                }
-
-                return (caption, analysis, contentType, tone, title, hashtags);
-            }
-            catch
-            {
-                // fallback
-                return (SanitizeForbiddenVocabulary(text), "", contentType, "general", null, null);
-            }
         }
 
         private static string SanitizeForbiddenVocabulary(string input)
@@ -838,7 +799,10 @@ Return valid JSON only. No markdown. No extra keys beyond what the user prompt r
             sb.AppendLine($"📏 Tỷ lệ: {scale}");
 
             sb.AppendLine();
-            sb.AppendLine("📩 Inbox GRE•911 để nhận báo giá và thông tin hàng sẵn có.");
+            sb.AppendLine($"🌐 Website: https://garage911vn.com/");
+
+            sb.AppendLine();
+            sb.AppendLine("📩 Inbox GRE•911 hoặc truy cập website để nhận báo giá và thông tin chi tiết.");
 
             sb.AppendLine();
             sb.AppendLine("Making Things Small. Creating the Culture.");
@@ -968,10 +932,7 @@ Return valid JSON only. No markdown. No extra keys beyond what the user prompt r
             }
 
             sb.AppendLine();
-            sb.AppendLine("📸 Cùng nhìn lại những khoảnh khắc đáng nhớ của sự kiện lần này.");
-
-            sb.AppendLine();
-            sb.AppendLine("Making Things Small. Creating the Culture.");
+            sb.AppendLine("📸 Cùng nhìn lại một vài khoảnh khắc đáng nhớ của buổi offline qua loạt ảnh dưới đây nhé!");
 
             sb.AppendLine();
             sb.AppendLine(hashtags);

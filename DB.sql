@@ -461,3 +461,16 @@ ALTER TABLE users
 ADD COLUMN fcm_token text;
 ALTER TABLE posts
 ADD COLUMN facebook_post_id text;
+-- =========================================
+-- ADD POST TYPE
+-- =========================================
+
+ALTER TABLE posts
+ADD COLUMN post_type VARCHAR(20) NOT NULL DEFAULT 'Image';
+
+-- =========================================
+-- ADD VIDEO URL
+-- =========================================
+
+ALTER TABLE posts
+ADD COLUMN video_url TEXT;
