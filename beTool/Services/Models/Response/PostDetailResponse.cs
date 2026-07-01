@@ -17,6 +17,8 @@ namespace Services.Models.Response
         public string? ContentType { get; set; }
         public string? SceneType { get; set; }
         public string? MoodType { get; set; }
+        public string? PostType { get; set; }
+        public string? VideoUrl { get; set; }
 
         public List<PostImageDto> Images { get; set; } = new();
     }
