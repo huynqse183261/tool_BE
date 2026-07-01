@@ -51,9 +51,6 @@ namespace Services.Implement
             _environment = environment;
             _facebookService = facebookService;
         }
-        // Inject thêm repositories cần thiết
-
-
 
         // Lấy danh sách drafts của user
         public async Task<ApiResponse<List<DraftSummaryResponse>>> GetDraftsAsync(int userId)
@@ -371,6 +368,8 @@ namespace Services.Implement
                     ContentType = post.ContentType,
                     SceneType = post.SceneType,
                     MoodType = post.MoodType,
+                    PostType = post.PostType,
+                    VideoUrl = post.VideoUrl,
                     Images = post.PostImages
                         .OrderBy(i => i.DisplayOrder)
                         .Select(i => new PostImageDto
@@ -491,13 +490,12 @@ namespace Services.Implement
                     PublishedAt = p.PublishedAt,
                     FacebookPostId = p.FacebookPostId,
                     Platforms = p.PostPlatforms
-                        .Where(pp => pp.Status == "Published")
-                        .Select(pp => new PlatformSummary
-                        {
-                            Platform = pp.Platform,
-                            PlatformPostId = pp.PlatformPostId,
-                            PublishedAt = pp.PublishedAt
-                        }).ToList()
+                     .Select(pp => new PlatformSummary
+                     {
+                         Platform = pp.Platform,
+                         PlatformPostId = pp.PlatformPostId,
+                         PublishedAt = pp.PublishedAt
+                     }).ToList()
                 }).ToList();
 
                 return new ApiResponse<List<PostSummaryResponse>>
