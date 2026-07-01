@@ -23,5 +23,7 @@ namespace Services.Interface
         Task<ApiResponse<bool>> SchedulePostAsync(int postId, int userId, SchedulePostRequest request);
         Task<ApiResponse<bool>> CancelScheduleAsync(int postId, int userId);
         Task<ApiResponse<List<PostSummaryResponse>>> GetPublishedPostsAsync(int userId);
+        Task<ApiResponse<UploadVideoResponse>> UploadVideoPostAsync(UploadVideoRequest request, int userId);
+        Task<ApiResponse<PublishPostResponse>> PublishVideoToFacebookAsync(int postId, int userId, PublishPostRequest request);
     }
 }

@@ -209,5 +209,28 @@ namespace beTool.Controllers
             var result = await _postService.GetPublishedPostsAsync(userId);
             return Ok(result);
         }
+        [HttpPost("upload-video")]
+        public async Task<IActionResult> UploadVideo([FromForm] UploadVideoRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var result = await _postService.UploadVideoPostAsync(request, userId);
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/publish-video")]
+        public async Task<IActionResult> PublishVideo(int id, [FromBody] PublishPostRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var result = await _postService.PublishVideoToFacebookAsync(id, userId, request);
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

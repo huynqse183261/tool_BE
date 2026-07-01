@@ -16,7 +16,8 @@ public partial class Post
     public string Caption { get; set; }
 
     public string Status { get; set; }
-
+    public string PostType { get; set; } = "Image";
+    public string VideoUrl { get; set; }
     public DateTime? ScheduledAt { get; set; }
 
     public DateTime? PublishedAt { get; set; }

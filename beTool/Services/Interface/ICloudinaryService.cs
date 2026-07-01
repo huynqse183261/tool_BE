@@ -11,5 +11,6 @@ namespace Services.Interface
     {
         Task<string> UploadImageAsync(IFormFile file);
         Task<List<string>> UploadImagesAsync(List<IFormFile> files);
+        Task<string> UploadVideoAsync(IFormFile videoFile);
     }
 }

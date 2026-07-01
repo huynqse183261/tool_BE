@@ -10,5 +10,7 @@
 
         // Publish carousel post với nhiều ảnh — upload từng ảnh rồi attach vào feed
         Task<string> PublishCarouselPostAsync(string caption, List<string> imageUrls, string pageId, string pageToken);
+        // Publish a video post to Facebook Page using a Cloudinary video URL
+        Task<string> PublishVideoPostAsync(string caption, string videoUrl, string pageId, string pageToken);
     }
 }

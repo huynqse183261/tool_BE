@@ -29,6 +29,7 @@ namespace Services.Implement
         private readonly PostPlatformRepository _postPlatformRepo;
         private readonly ScheduledJobRepository _scheduledJobRepo;
         private readonly SocialAccountRepository _socialAccountRepo;
+        private readonly IFacebookService _facebookService;
         public PostService(
             PostRepository postRepository,
             PostImageRepository postImageRepository,
@@ -37,7 +38,8 @@ namespace Services.Implement
             SocialAccountRepository socialAccountRepository,
             ICloudinaryService cloudinaryService,
             IConfiguration configuration,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            IFacebookService facebookService)
         {
             _postRepository = postRepository;
             _postImageRepository = postImageRepository;
@@ -47,6 +49,7 @@ namespace Services.Implement
             _cloudinaryService = cloudinaryService;
             _configuration = configuration;
             _environment = environment;
+            _facebookService = facebookService;
         }
         // Inject thêm repositories cần thiết
 
@@ -137,6 +140,13 @@ namespace Services.Implement
                 if (request.Platforms == null || request.Platforms.Count == 0)
                     return new ApiResponse<bool> { Success = false, Message = "At least one platform required", Data = false };
 
+                if (string.IsNullOrWhiteSpace(post.Caption))
+                    return new ApiResponse<bool>
+                    {
+                        Success = false,
+                        Message = "Please save draft before scheduling",
+                        Data = false
+                    };
                 // Tạo PostPlatform cho từng platform được chọn
                 foreach (var platform in request.Platforms)
                 {
@@ -243,7 +253,7 @@ namespace Services.Implement
                 }
 
                 // Validate file count (max 10 images per post)
-                const int maxImages = 10;
+                const int maxImages = 20;
                 if (request.Images.Count > maxImages)
                 {
                     return new ApiResponse<UploadPostResponse>
@@ -504,6 +514,109 @@ namespace Services.Implement
                     Success = false,
                     Message = $"An error occurred: {ex.Message}"
                 };
+            }
+        }
+        public async Task<ApiResponse<UploadVideoResponse>> UploadVideoPostAsync(UploadVideoRequest request, int userId)
+        {
+            try
+            {
+                if (request.Video == null || request.Video.Length == 0)
+                    return new ApiResponse<UploadVideoResponse> { Success = false, Message = "No video file provided" };
+
+                // Validate file type
+                var allowedTypes = new[] { "video/mp4", "video/quicktime", "video/x-msvideo" };
+                if (!allowedTypes.Contains(request.Video.ContentType.ToLower()))
+                    return new ApiResponse<UploadVideoResponse> { Success = false, Message = "Invalid video format. Allowed: mp4, mov, avi" };
+
+                // Upload to Cloudinary
+                var videoUrl = await _cloudinaryService.UploadVideoAsync(request.Video);
+
+                // Create post with PostType = Video
+                var post = new Post
+                {
+                    UserId = userId,
+                    Caption = request.Caption ?? string.Empty,
+                    PostType = "Video",
+                    VideoUrl = videoUrl,
+                    Status = PostStatus.Draft.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                await _postRepository.CreateAsync(post);
+                await _postRepository.SaveAsync();
+
+                return new ApiResponse<UploadVideoResponse>
+                {
+                    Success = true,
+                    Message = "Video uploaded successfully",
+                    Data = new UploadVideoResponse { PostId = post.Id, VideoUrl = videoUrl }
+                };
+            }
+            catch (Exception ex)
+            {
+                // Catch Cloudinary upload errors or DB errors
+                return new ApiResponse<UploadVideoResponse> { Success = false, Message = $"An error occurred: {ex.Message}" };
+            }
+        }
+
+        public async Task<ApiResponse<PublishPostResponse>> PublishVideoToFacebookAsync(int postId, int userId, PublishPostRequest request)
+        {
+            try
+            {
+                var post = await _postRepository.GetByIdAsync(postId);
+                if (post == null)
+                    return new ApiResponse<PublishPostResponse> { Success = false, Message = "Post not found" };
+
+                if (post.UserId != userId)
+                    return new ApiResponse<PublishPostResponse> { Success = false, Message = "Forbidden" };
+
+                if (string.IsNullOrWhiteSpace(post.VideoUrl))
+                    return new ApiResponse<PublishPostResponse> { Success = false, Message = "No video found for this post" };
+
+                if (string.Equals(post.Status, PostStatus.Published.ToString(), StringComparison.OrdinalIgnoreCase))
+                    return new ApiResponse<PublishPostResponse> { Success = false, Message = "Post already published" };
+
+                var finalCaption = !string.IsNullOrWhiteSpace(request?.Caption)
+                    ? request.Caption.Trim()
+                    : post.Caption;
+
+                // Get Facebook social account token from DB
+                var socialAccount = await _socialAccountRepository.GetActiveByUserAndPlatformAsync(userId, "Facebook");
+                if (socialAccount == null)
+                    return new ApiResponse<PublishPostResponse> { Success = false, Message = "No active Facebook account connected" };
+
+                var facebookPostId = await _facebookService.PublishVideoPostAsync(
+                    finalCaption, post.VideoUrl, socialAccount.PageId!, socialAccount.AccessToken!);
+
+                var publishedAt = DateTime.UtcNow;
+
+                post.Caption = finalCaption;
+                post.Status = PostStatus.Published.ToString();
+                post.PublishedAt = publishedAt;
+                post.FacebookPostId = facebookPostId;
+                post.UpdatedAt = publishedAt;
+
+                await _postRepository.UpdateAsync(post);
+                await _postRepository.SaveAsync();
+
+                return new ApiResponse<PublishPostResponse>
+                {
+                    Success = true,
+                    Message = "Video published to Facebook successfully",
+                    Data = new PublishPostResponse
+                    {
+                        PostId = postId,
+                        FacebookPostId = facebookPostId,
+                        PublishedAt = publishedAt,
+                        Caption = finalCaption
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                // Catch Facebook API errors or DB errors
+                return new ApiResponse<PublishPostResponse> { Success = false, Message = $"Publish failed: {ex.Message}" };
             }
         }
     }
